@@ -1,4 +1,4 @@
-# Natural Link Regression Check — GitHub Action
+# Regression Check - Github Action
 
 A GitHub Action by [Natural Link](https://naturallink.ai) that runs regression checks on your pull requests and posts the results directly as a PR comment.
 
@@ -26,6 +26,38 @@ Add your Natural Link API token as a secret in your GitHub repository (or organi
 6. Click **Add secret**
 
 > For organization-wide usage, you can add the secret at the organization level under **Organization Settings** → **Secrets and variables** → **Actions**.
+
+## Usage
+
+Add the following workflow file to your repository at `.github/workflows/regression-check.yml`:
+
+```yaml
+name: Regression Check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  regression-check:
+    name: Regression Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run Natural Link Regression Check
+        id: regression-check
+        uses: NaturalLink-AI/regression-check-github-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          naturallink-api-token: ${{ secrets.NATURALLINK_API_TOKEN }}
+```
 
 ## Support
 
