@@ -8,7 +8,7 @@ import * as github from '@actions/github'
  */
 export async function run(): Promise<void> {
   try {
-    const token = core.getInput('github-token')
+    const token = core.getInput('github-token', { required: true })
     const octokit = github.getOctokit(token)
 
     if (github.context.payload.pull_request) {

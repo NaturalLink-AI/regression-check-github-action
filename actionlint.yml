@@ -2,5 +2,4 @@
 
 paths:
   .github/workflows/**/*.{yml,yaml}:
-    ignore:
-      - invalid runner name "node24"
+    ignore: []
