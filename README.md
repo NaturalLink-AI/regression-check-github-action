@@ -63,4 +63,4 @@ jobs:
 
 For questions, issues, or feedback, reach out to us:
 
-- **Email**: [sachin@naturallink.ai](mailto:sachin@naturallink.ai)
+- **Website**: [Natural Link](https://naturallink.ai)
