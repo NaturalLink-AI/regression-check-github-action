@@ -1,0 +1,21 @@
+name: Regression Check
+description: 'Check for regressions in your code'
+author: naturallink.ai
+
+# Add your action's branding here. This will appear on the GitHub Marketplace.
+branding:
+  icon: heart
+  color: red
+
+# Define your inputs here.
+inputs:
+  github-token:
+    description: GitHub token for bot permission to create a comment on the PR
+    required: true
+
+# Define your outputs here.
+outputs: {}
+
+runs:
+  using: node20
+  main: dist/index.js
