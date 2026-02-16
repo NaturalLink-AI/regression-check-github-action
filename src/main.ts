@@ -8,8 +8,7 @@ import * as github from '@actions/github'
  */
 export async function run(): Promise<void> {
   try {
-    const token = core.getInput('github-token', { required: true })
-    const octokit = github.getOctokit(token)
+    // const token = core.getInput('github-token', { required: true })
 
     if (github.context.payload.pull_request) {
       const headResponse = await fetch('https://naturallink.ai', {
@@ -22,14 +21,6 @@ export async function run(): Promise<void> {
         `HEAD https://naturallink.ai -> ${headResponse.status} ${headResponse.statusText}`
       )
       core.info(`Response headers: ${JSON.stringify(responseHeaders)}`)
-
-      const { data } = await octokit.rest.repos.get({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo
-      })
-      core.info(
-        `Received response from naturallink.ai: ${JSON.stringify(data)}`
-      )
     }
   } catch (error) {
     // Fail the workflow run if an error occurs
