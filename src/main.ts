@@ -1,15 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-type PullRequestActionType =
-  | 'opened'
-  | 'synchronize'
-  | 'reopened'
-  | 'closed'
-  | 'edited'
-  | string
-  | undefined
-
 /**
  * The main function for the action.
  *
@@ -21,15 +12,24 @@ export async function run(): Promise<void> {
     const octokit = github.getOctokit(token)
 
     if (github.context.payload.pull_request) {
-      const triggerType: PullRequestActionType = github.context.payload.action
-      if (triggerType === 'opened') {
-        await octokit.rest.issues.createComment({
-          owner: github.context.repo.owner,
-          repo: github.context.repo.repo,
-          issue_number: github.context.payload.pull_request.number,
-          body: `👋 Hello from naturallink.ai!`
-        })
-      }
+      const headResponse = await fetch('https://naturallink.ai', {
+        method: 'HEAD'
+      })
+      const responseHeaders: Record<string, string> = Object.fromEntries(
+        headResponse.headers.entries()
+      )
+      core.info(
+        `HEAD https://naturallink.ai -> ${headResponse.status} ${headResponse.statusText}`
+      )
+      core.info(`Response headers: ${JSON.stringify(responseHeaders)}`)
+
+      const { data } = await octokit.rest.repos.get({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo
+      })
+      core.info(
+        `Received response from naturallink.ai: ${JSON.stringify(data)}`
+      )
     }
   } catch (error) {
     // Fail the workflow run if an error occurs

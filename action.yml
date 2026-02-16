@@ -1,5 +1,5 @@
 name: Regression Check
-description: ''
+description: 'Check for regressions in your code'
 author: naturallink.ai
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
