@@ -1,6 +1,7 @@
 /**
  * Unit tests for src/wait.ts
  */
+import { jest } from '@jest/globals'
 import { wait } from '../src/wait.js'
 
 describe('wait.ts', () => {
@@ -13,12 +14,14 @@ describe('wait.ts', () => {
   })
 
   it('Waits with a valid number', async () => {
-    const start = new Date()
-    await wait(500)
-    const end = new Date()
+    jest.useFakeTimers()
 
-    const delta = Math.abs(end.getTime() - start.getTime())
-
-    expect(delta).toBeGreaterThan(450)
+    try {
+      const promise = wait(500)
+      jest.advanceTimersByTime(500)
+      await expect(promise).resolves.toBe('done!')
+    } finally {
+      jest.useRealTimers()
+    }
   })
 })
