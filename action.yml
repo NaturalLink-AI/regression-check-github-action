@@ -8,10 +8,7 @@ branding:
   color: red
 
 # Define your inputs here.
-inputs:
-  github-token:
-    description: GitHub token for bot permission to create a comment on the PR
-    required: true
+inputs: {}
 
 # Define your outputs here.
 outputs: {}

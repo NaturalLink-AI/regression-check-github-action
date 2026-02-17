@@ -55480,15 +55480,6 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-function getAuthString(token, options) {
-    if (!token && !options.auth) {
-        throw new Error('Parameter token or opts.auth is required');
-    }
-    else if (token && options.auth) {
-        throw new Error('Parameters token and opts.auth may not both be specified');
-    }
-    return typeof options.auth === 'string' ? options.auth : `token ${token}`;
-}
 function getProxyAgent(destinationUrl) {
     const hc = new libExports.HttpClient();
     return hc.getAgent(destinationUrl);
@@ -59265,34 +59256,9 @@ const defaults = {
         fetch: getProxyFetch(baseUrl)
     }
 };
-const GitHub = Octokit.plugin(restEndpointMethods, paginateRest).defaults(defaults);
-/**
- * Convience function to correctly format Octokit Options to pass into the constructor.
- *
- * @param     token    the repo PAT or GITHUB_TOKEN
- * @param     options  other options to set
- */
-function getOctokitOptions(token, options) {
-    const opts = Object.assign({}, {}); // Shallow clone - don't mutate the object provided by the caller
-    // Auth
-    const auth = getAuthString(token, opts);
-    if (auth) {
-        opts.auth = auth;
-    }
-    return opts;
-}
+Octokit.plugin(restEndpointMethods, paginateRest).defaults(defaults);
 
 const context = new Context();
-/**
- * Returns a hydrated octokit ready to use for GitHub Actions
- *
- * @param     token    the repo PAT or GITHUB_TOKEN
- * @param     options  other options to set
- */
-function getOctokit(token, options, ...additionalPlugins) {
-    const GitHubWithPlugins = GitHub.plugin(...additionalPlugins);
-    return new GitHubWithPlugins(getOctokitOptions(token));
-}
 
 /**
  * The main function for the action.
@@ -59301,8 +59267,6 @@ function getOctokit(token, options, ...additionalPlugins) {
  */
 async function run() {
     try {
-        const token = coreExports.getInput('github-token', { required: true });
-        const octokit = getOctokit(token);
         if (context.payload.pull_request) {
             const headResponse = await fetch('https://naturallink.ai', {
                 method: 'HEAD'
@@ -59310,11 +59274,6 @@ async function run() {
             const responseHeaders = Object.fromEntries(headResponse.headers.entries());
             coreExports.info(`HEAD https://naturallink.ai -> ${headResponse.status} ${headResponse.statusText}`);
             coreExports.info(`Response headers: ${JSON.stringify(responseHeaders)}`);
-            const { data } = await octokit.rest.repos.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo
-            });
-            coreExports.info(`Received response from naturallink.ai: ${JSON.stringify(data)}`);
         }
     }
     catch (error) {
