@@ -1,6 +1,6 @@
 # Regression Check - Github Action
 
-A GitHub Action by [Natural Link](https://naturallink.ai) that runs UI and User Flows regression checks on your pull requests and posts the results in the PR as a comment.
+A GitHub Action by [NaturalLink](https://naturallink.ai) that runs UI and User Flows regression checks on your pull requests and posts the results in the PR as a comment.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Add your NaturalLink API key as a secret in your GitHub repository (or organizat
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
 4. Set the name to `NATURALLINK_API_KEY`
-5. Paste your API token as the value
+5. Paste your API key as the value
 6. Click **Add secret**
 
 > For organization-wide usage, you can add the secret at the organization level under **Organization Settings** → **Secrets and variables** → **Actions**.
@@ -32,7 +32,7 @@ Add your NaturalLink API key as a secret in your GitHub repository (or organizat
 Add the following workflow file to your repository at `.github/workflows/regression-check.yml`:
 
 ```yaml
-name: Regression Check
+name: NaturalLink Regression Check
 
 on:
   pull_request:
@@ -52,7 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Run Natural Link Regression Check
+      - name: Run NaturalLink Regression Check
         id: regression-check
         uses: NaturalLink-AI/regression-check-github-action@v1
         with:
