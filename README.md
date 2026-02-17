@@ -52,7 +52,7 @@ jobs:
 
       - name: Run NaturalLink Regression Check
         id: regression-check
-        uses: NaturalLink-AI/regression-check-github-action@v1
+        uses: NaturalLink-AI/regression-check-github-action@v0.3.0
         with:
           api-key: ${{ secrets.NATURALLINK_API_KEY }}
 ```
