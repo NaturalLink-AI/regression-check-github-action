@@ -8,7 +8,10 @@ branding:
   color: red
 
 # Define your inputs here.
-inputs: {}
+inputs:
+  api-key:
+    required: true
+    description: 'Your NaturalLink API key'
 
 # Define your outputs here.
 outputs: {}
