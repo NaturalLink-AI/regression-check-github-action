@@ -9,9 +9,9 @@ branding:
 
 # Define your inputs here.
 inputs:
-  github-token:
-    description: GitHub token for bot permission to create a comment on the PR
+  api-key:
     required: true
+    description: 'Your NaturalLink API key'
 
 # Define your outputs here.
 outputs: {}

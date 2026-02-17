@@ -8,8 +8,6 @@ import * as github from '@actions/github'
  */
 export async function run(): Promise<void> {
   try {
-    // const token = core.getInput('github-token', { required: true })
-
     if (github.context.payload.pull_request) {
       const headResponse = await fetch('https://naturallink.ai', {
         method: 'HEAD'
