@@ -38,19 +38,10 @@ on:
   pull_request:
     types: [opened, synchronize]
 
-permissions:
-  pull-requests: write
-  issues: write
-  content: read
-
 jobs:
   regression-check:
     name: Regression Check
     runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
 
       - name: Run NaturalLink Regression Check
         id: regression-check
