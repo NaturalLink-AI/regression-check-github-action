@@ -1,4 +1,4 @@
-# Regression Check - Github Action
+# NaturalLink Regression Check - Github Action
 
 A GitHub Action by [NaturalLink](https://naturallink.ai) that runs UI and User Flows regression checks on your pull requests and posts the results in the PR as a comment.
 
