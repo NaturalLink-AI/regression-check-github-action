@@ -1,6 +1,6 @@
 # Regression Check - Github Action
 
-A GitHub Action by [Natural Link](https://naturallink.ai) that runs regression checks on your pull requests and posts the results directly as a PR comment.
+A GitHub Action by [Natural Link](https://naturallink.ai) that runs regression checks on your pull requests and posts the results in the PR as a comment.
 
 ## Prerequisites
 
@@ -41,6 +41,7 @@ on:
 permissions:
   pull-requests: write
   issues: write
+  content: read
 
 jobs:
   regression-check:
