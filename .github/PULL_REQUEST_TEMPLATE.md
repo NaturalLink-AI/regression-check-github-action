@@ -14,30 +14,30 @@
 
 ## Commit Convention
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated releases.
+This project uses [Conventional Commits](https://www.conventionalcommits.org/)
+for automated releases.
 
-**Commits that trigger a release:**
-| Prefix | Release Type | Example |
-|--------|--------------|---------|
-| `feat:` | Minor version bump | `feat: add support for custom API endpoints` |
-| `fix:` | Patch version bump | `fix: handle null response from API` |
-| `feat!:` or `fix!:` | Major version bump | `feat!: change output format to JSON` |
+**Commits that trigger a release:** | Prefix | Release Type | Example |
+|--------|--------------|---------| | `feat:` | Minor version bump |
+`feat: add support for custom API endpoints` | | `fix:` | Patch version bump |
+`fix: handle null response from API` | | `feat!:` or `fix!:` | Major version
+bump | `feat!: change output format to JSON` |
 
-**Commits that do NOT trigger a release:**
-| Prefix | Example |
-|--------|---------|
-| `chore:` | `chore: update dependencies` |
-| `docs:` | `docs: add usage examples to README` |
-| `refactor:` | `refactor: extract API client to separate module` |
-| `test:` | `test: add coverage for error handling` |
-| `ci:` | `ci: add Node 22 to test matrix` |
+**Commits that do NOT trigger a release:** | Prefix | Example |
+|--------|---------| | `chore:` | `chore: update dependencies` | | `docs:` |
+`docs: add usage examples to README` | | `refactor:` |
+`refactor: extract API client to separate module` | | `test:` |
+`test: add coverage for error handling` | | `ci:` |
+`ci: add Node 22 to test matrix` |
 
 **With ticket/scope:**
+
 - `feat(api): add retry logic` — scope in parentheses
 - `feat(PROJ-123): add retry logic` — ticket as scope
 - `fix(PROJ-456)!: change auth flow` — ticket + breaking change
 
-> Ensure your PR title follows this convention as it becomes the merge commit message.
+> Ensure your PR title follows this convention as it becomes the merge commit
+> message.
 
 ## Related Issues
 
