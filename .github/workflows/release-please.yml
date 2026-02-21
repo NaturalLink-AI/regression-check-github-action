@@ -29,9 +29,7 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           release-type: node
-          # Use PAT instead of GITHUB_TOKEN to allow PR creation
-          # (org settings restrict GITHUB_TOKEN from creating PRs)
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   update-major-tag:
     name: Update Major Version Tag
