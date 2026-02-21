@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://docs.naturallink.ai
+    about: Check our documentation for usage guides
+  - name: General Questions
+    url: https://github.com/NaturalLink-AI/regression-check-github-action/discussions
+    about: Ask questions in GitHub Discussions
