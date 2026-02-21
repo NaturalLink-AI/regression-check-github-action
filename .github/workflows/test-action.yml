@@ -1,0 +1,28 @@
+# Test the action itself on pull requests
+# This ensures the action works correctly before releasing
+name: Test Action
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test-action:
+    name: Test Action
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Test NaturalLink Regression Check
+        id: test-action
+        uses: ./
+        with:
+          api-key: ${{ secrets.NATURALLINK_API_KEY }}

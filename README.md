@@ -49,11 +49,10 @@ jobs:
   regression-check:
     name: Regression Check
     runs-on: ubuntu-latest
-
+    steps:
       - name: Run NaturalLink Regression Check
         id: regression-check
         uses: NaturalLink-AI/regression-check-github-action@v0.3.0
         with:
           api-key: ${{ secrets.NATURALLINK_API_KEY }}
 ```
-

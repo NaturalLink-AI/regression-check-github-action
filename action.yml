@@ -1,11 +1,11 @@
-name: Regression Check
-description: 'Check for regressions in your code'
+name: NaturalLink Regression Check
+description:
+  'Visual regression checks for AI-generated PRs - see what changed, instantly'
 author: naturallink.ai
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: eye
+  color: purple
 
 # Define your inputs here.
 inputs:

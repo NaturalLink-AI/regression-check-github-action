@@ -1,0 +1,38 @@
+# CodeQL security scanning workflow
+# Analyzes TypeScript code for security vulnerabilities
+name: CodeQL Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday at midnight
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        id: init-codeql
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript
+          config-file: .github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        id: analyze
+        uses: github/codeql-action/analyze@v3
