@@ -11,7 +11,7 @@ We release patches for security vulnerabilities for the following versions:
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please report it by emailing
-**security@naturallink.ai**.
+**contact@naturallink.ai**.
 
 Please include:
 

@@ -165,7 +165,7 @@ jobs:
 - **Documentation**: [docs.naturallink.ai](https://docs.naturallink.ai)
 - **Issues**:
   [GitHub Issues](https://github.com/NaturalLink-AI/regression-check-github-action/issues)
-- **Email**: support@naturallink.ai
+- **Email**: contact@naturallink.ai
 
 ## Security
 
@@ -174,7 +174,7 @@ store your API key as a
 [GitHub Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 and never commit it to your repository.
 
-For security vulnerabilities, please email security@naturallink.ai.
+For security vulnerabilities, please email contact@naturallink.ai.
 
 ## Contributing
 

@@ -123,6 +123,6 @@ If you have questions, feel free to:
 
 - Open a
   [GitHub Issue](https://github.com/NaturalLink-AI/regression-check-github-action/issues)
-- Email us at support@naturallink.ai
+- Email us at contact@naturallink.ai
 
 Thank you for contributing!
