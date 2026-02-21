@@ -76,4 +76,14 @@ describe('main.ts', () => {
 
     expect(core.setFailed).toHaveBeenCalledWith('Network error')
   })
+
+  it('should handle non-Error exceptions gracefully', async () => {
+    mockContext.payload.pull_request = { number: 1 } as never
+
+    mockFetch.mockRejectedValueOnce('String error message')
+
+    await run()
+
+    expect(core.setFailed).toHaveBeenCalledWith('String error message')
+  })
 })

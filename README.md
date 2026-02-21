@@ -1,8 +1,25 @@
-# NaturalLink Regression Check - Github Action
+<p align="center">
+  <img src="assets/logo.png" alt="NaturalLink Logo" width="120" />
+</p>
 
-A GitHub Action by [NaturalLink](https://naturallink.ai) that runs UI and User
-Flows regression checks on your pull requests and posts the results in the PR as
-a comment.
+<h1 align="center">NaturalLink Regression Check</h1>
+
+<p align="center">
+  <strong>Visual regression checks for AI-generated PRs</strong><br/>
+  See what changed, instantly — without pulling a single branch.
+</p>
+
+<p align="center">
+  <a href="https://naturallink.ai">Website</a> •
+  <a href="https://dashboard.naturallink.ai">Dashboard</a> •
+  <a href="#usage">Usage</a>
+</p>
+
+---
+
+A GitHub Action by [NaturalLink](https://naturallink.ai) that runs UI and user
+flow regression checks on your pull requests and posts the results as a PR
+comment.
 
 ## Prerequisites
 
