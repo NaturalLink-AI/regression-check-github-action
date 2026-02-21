@@ -59399,17 +59399,63 @@ const context = new Context();
  */
 async function run() {
     try {
+        // Get the API key input
+        const apiKey = coreExports.getInput('api-key', { required: true });
+        if (!apiKey) {
+            coreExports.setFailed('API key is required');
+            return;
+        }
+        // Mask the API key in logs
+        coreExports.setSecret(apiKey);
         if (context.payload.pull_request) {
-            const headResponse = await fetch('https://naturallink.ai', {
-                method: 'HEAD'
+            const prNumber = context.payload.pull_request.number;
+            coreExports.info(`Running regression check for PR #${prNumber}`);
+            // Call NaturalLink API to check for regressions
+            const response = await fetch('https://api.naturallink.ai/v1/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    repository: context.repo,
+                    pull_request: prNumber,
+                    sha: context.sha
+                })
             });
-            const responseHeaders = Object.fromEntries(headResponse.headers.entries());
-            coreExports.info(`HEAD https://naturallink.ai -> ${headResponse.status} ${headResponse.statusText}`);
-            coreExports.info(`Response headers: ${JSON.stringify(responseHeaders)}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                coreExports.setFailed(`API request failed: ${response.status} ${errorText}`);
+                coreExports.setOutput('status', 'failure');
+                coreExports.setOutput('regressions-detected', 'false');
+                return;
+            }
+            const result = (await response.json());
+            // Set outputs
+            coreExports.setOutput('status', result.status);
+            coreExports.setOutput('report-url', result.report_url);
+            coreExports.setOutput('regressions-detected', String(result.regressions_detected));
+            // Log results
+            coreExports.info(`Regression check complete: ${result.status}`);
+            if (result.report_url) {
+                coreExports.info(`View full report: ${result.report_url}`);
+            }
+            if (result.regressions_detected) {
+                coreExports.warning('Unintended UI regressions detected. Please review the report.');
+            }
+            else {
+                coreExports.info('No unintended regressions detected.');
+            }
+        }
+        else {
+            coreExports.info('Not a pull request - skipping regression check');
+            coreExports.setOutput('status', 'skipped');
+            coreExports.setOutput('regressions-detected', 'false');
         }
     }
     catch (error) {
-        // Fail the workflow run if an error occurs
+        coreExports.setOutput('status', 'failure');
+        coreExports.setOutput('regressions-detected', 'false');
         if (error instanceof Error)
             coreExports.setFailed(error.message);
         else

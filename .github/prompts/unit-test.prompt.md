@@ -32,11 +32,16 @@ import * as core from '../__fixtures__/core.js'
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
 
-// Mock @actions/github
+// Mock @actions/github with necessary context properties
 const mockContext = {
   payload: {
-    pull_request: null
-  }
+    pull_request: null as { number: number } | null
+  },
+  repo: {
+    owner: 'test-owner',
+    repo: 'test-repo'
+  },
+  sha: 'abc123'
 }
 jest.unstable_mockModule('@actions/github', () => ({
   context: mockContext
@@ -46,14 +51,18 @@ jest.unstable_mockModule('@actions/github', () => ({
 const mockFetch = jest.fn()
 global.fetch = mockFetch as typeof fetch
 
-// The module being tested should be imported dynamically. This ensures that the
-// mocks are used in place of any actual dependencies.
+// The module being tested should be imported dynamically.
 const { run } = await import('../src/main.js')
 
 describe('main.ts', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockContext.payload.pull_request = null
+    // Default: return a valid API key
+    core.getInput.mockImplementation((name: string) => {
+      if (name === 'api-key') return 'test-api-key'
+      return ''
+    })
   })
 
   afterEach(() => {
@@ -66,46 +75,60 @@ describe('main.ts', () => {
     await run()
 
     expect(mockFetch).not.toHaveBeenCalled()
-    expect(core.setFailed).not.toHaveBeenCalled()
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'skipped')
   })
 
-  it('should make HEAD request to naturallink.ai on pull request', async () => {
-    mockContext.payload.pull_request = { number: 1 } as never
+  it('should call NaturalLink API on pull request', async () => {
+    mockContext.payload.pull_request = { number: 42 }
 
-    const mockHeaders = new Headers({ 'content-type': 'text/html' })
     mockFetch.mockResolvedValueOnce({
-      status: 200,
-      statusText: 'OK',
-      headers: mockHeaders
+      ok: true,
+      json: async () => ({
+        status: 'success',
+        report_url: 'https://app.naturallink.ai/report/123',
+        regressions_detected: false
+      })
     })
 
     await run()
 
-    expect(mockFetch).toHaveBeenCalledWith('https://naturallink.ai', {
-      method: 'HEAD'
-    })
-    expect(core.info).toHaveBeenCalled()
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.naturallink.ai/v1/check',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-api-key'
+        })
+      })
+    )
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'success')
     expect(core.setFailed).not.toHaveBeenCalled()
   })
 
-  it('should handle fetch errors gracefully', async () => {
-    mockContext.payload.pull_request = { number: 1 } as never
+  it('should handle API errors gracefully', async () => {
+    mockContext.payload.pull_request = { number: 42 }
 
-    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized'
+    })
 
     await run()
 
-    expect(core.setFailed).toHaveBeenCalledWith('Network error')
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'API request failed: 401 Unauthorized'
+    )
   })
 
-  it('should handle non-Error exceptions gracefully', async () => {
-    mockContext.payload.pull_request = { number: 1 } as never
-
-    mockFetch.mockRejectedValueOnce('String error message')
+  it('should fail when API key is missing', async () => {
+    core.getInput.mockImplementation(() => '')
+    mockContext.payload.pull_request = { number: 42 }
 
     await run()
 
-    expect(core.setFailed).toHaveBeenCalledWith('String error message')
+    expect(core.setFailed).toHaveBeenCalledWith('API key is required')
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 })
 ```
