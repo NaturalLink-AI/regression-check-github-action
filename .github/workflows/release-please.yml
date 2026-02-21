@@ -24,12 +24,19 @@ jobs:
       patch: ${{ steps.release.outputs.patch }}
 
     steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Release Please
         id: release
         uses: googleapis/release-please-action@v4
         with:
           release-type: node
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
   update-major-tag:
     name: Update Major Version Tag
@@ -38,14 +45,22 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
 
     steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Update Major Version Tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           MAJOR: ${{ needs.release-please.outputs.major }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: |
