@@ -1,20 +1,26 @@
-name: Regression Check
-description: 'Check for regressions in your code'
+name: NaturalLink Regression Check
+description:
+  'Catch unintended UI regressions in AI-generated PRs before they ship'
 author: naturallink.ai
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: eye
+  color: purple
 
-# Define your inputs here.
 inputs:
   api-key:
     required: true
-    description: 'Your NaturalLink API key'
+    description: 'Your NaturalLink API key from the dashboard'
 
-# Define your outputs here.
-outputs: {}
+outputs:
+  status:
+    description:
+      'The status of the regression check (success, failure, warning)'
+  report-url:
+    description: 'URL to the full regression report'
+  regressions-detected:
+    description:
+      'Whether unintended visual regressions were found (true, false)'
 
 runs:
   using: node20

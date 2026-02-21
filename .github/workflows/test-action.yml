@@ -1,0 +1,51 @@
+# Test the action itself on pull requests
+# This ensures the action works correctly before releasing
+# Note: Skips when secrets are unavailable (forked PRs from external contributors)
+name: Test Action
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test-action:
+    name: Test Action
+    runs-on: ubuntu-latest
+    # Skip if secret is not available (forked PRs from external contributors)
+    if:
+      ${{ github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository }}
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Check for API Key
+        id: check-secret
+        run: |
+          if [ -z "${{ secrets.NATURALLINK_API_KEY }}" ]; then
+            echo "has_secret=false" >> $GITHUB_OUTPUT
+            echo "::warning::NATURALLINK_API_KEY secret is not configured. Skipping action test."
+          else
+            echo "has_secret=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Test NaturalLink Regression Check
+        id: test-action
+        if: steps.check-secret.outputs.has_secret == 'true'
+        uses: ./
+        with:
+          api-key: ${{ secrets.NATURALLINK_API_KEY }}
+
+      - name: Skip Notice
+        if: steps.check-secret.outputs.has_secret != 'true'
+        run: echo "Action test skipped - API key not configured"

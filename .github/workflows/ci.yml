@@ -32,10 +32,22 @@ jobs:
         id: npm-ci
         run: npm ci
 
+      - name: Check Formatting
+        id: format-check
+        run: npm run format:check
+
       - name: Lint
         id: npm-lint
         run: npm run lint
 
-      - name: Test
+      - name: Test with Coverage
         id: npm-ci-test
-        run: npm run ci-test
+        run: npm run ci-test -- --coverage
+
+      - name: Verify Coverage Badge
+        id: coverage-badge
+        run: |
+          npm run coverage
+          if [ "$(git diff --text badges/coverage.svg | wc -l)" -gt "0" ]; then
+            echo "::warning::Coverage badge is out of date. Run 'npm run coverage' locally and commit the changes."
+          fi

@@ -3,5 +3,17 @@
 # Order is important! The last matching pattern takes the most precedence. #
 ############################################################################
 
-# Default owners, unless a later match takes precedence.
-* @actions/actions-oss-maintainers
+# Default owners for everything in the repo
+* @NaturalLink-AI/maintainers
+
+# Core action code requires maintainer review
+/src/ @NaturalLink-AI/maintainers
+/action.yml @NaturalLink-AI/maintainers
+
+# CI/CD and workflows
+/.github/workflows/ @NaturalLink-AI/maintainers
+
+# Documentation can be reviewed by any team member
+/README.md @NaturalLink-AI/team
+/CONTRIBUTING.md @NaturalLink-AI/team
+/SECURITY.md @NaturalLink-AI/maintainers

@@ -28,57 +28,107 @@ Use the following as an example of how to structure your unit tests:
  */
 import { jest } from '@jest/globals'
 import * as core from '../__fixtures__/core.js'
-import { wait } from '../__fixtures__/wait.js'
 
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
-jest.unstable_mockModule('../src/wait.js', () => ({ wait }))
 
-// The module being tested should be imported dynamically. This ensures that the
-// mocks are used in place of any actual dependencies.
+// Mock @actions/github with necessary context properties
+const mockContext = {
+  payload: {
+    pull_request: null as { number: number } | null
+  },
+  repo: {
+    owner: 'test-owner',
+    repo: 'test-repo'
+  },
+  sha: 'abc123'
+}
+jest.unstable_mockModule('@actions/github', () => ({
+  context: mockContext
+}))
+
+// Mock global fetch
+const mockFetch = jest.fn()
+global.fetch = mockFetch as typeof fetch
+
+// The module being tested should be imported dynamically.
 const { run } = await import('../src/main.js')
 
 describe('main.ts', () => {
   beforeEach(() => {
-    // Set the action's inputs as return values from core.getInput().
-    core.getInput.mockImplementation(() => '500')
-
-    // Mock the wait function so that it does not actually wait.
-    wait.mockImplementation(() => Promise.resolve('done!'))
+    jest.clearAllMocks()
+    mockContext.payload.pull_request = null
+    // Default: return a valid API key
+    core.getInput.mockImplementation((name: string) => {
+      if (name === 'api-key') return 'test-api-key'
+      return ''
+    })
   })
 
   afterEach(() => {
     jest.resetAllMocks()
   })
 
-  it('Sets the time output', async () => {
+  it('should skip execution when not a pull request', async () => {
+    mockContext.payload.pull_request = null
+
     await run()
 
-    // Verify the time output was set.
-    expect(core.setOutput).toHaveBeenNthCalledWith(
-      1,
-      'time',
-      // Simple regex to match a time string in the format HH:MM:SS.
-      expect.stringMatching(/^\d{2}:\d{2}:\d{2}/)
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'skipped')
+  })
+
+  it('should call NaturalLink API on pull request', async () => {
+    mockContext.payload.pull_request = { number: 42 }
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: 'success',
+        report_url: 'https://app.naturallink.ai/report/123',
+        regressions_detected: false
+      })
+    })
+
+    await run()
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.naturallink.ai/v1/check',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-api-key'
+        })
+      })
+    )
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'success')
+    expect(core.setFailed).not.toHaveBeenCalled()
+  })
+
+  it('should handle API errors gracefully', async () => {
+    mockContext.payload.pull_request = { number: 42 }
+
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized'
+    })
+
+    await run()
+
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'API request failed: 401 Unauthorized'
     )
   })
 
-  it('Sets a failed status', async () => {
-    // Clear the getInput mock and return an invalid value.
-    core.getInput.mockClear().mockReturnValueOnce('this is not a number')
-
-    // Clear the wait mock and return a rejected promise.
-    wait
-      .mockClear()
-      .mockRejectedValueOnce(new Error('milliseconds is not a number'))
+  it('should fail when API key is missing', async () => {
+    core.getInput.mockImplementation(() => '')
+    mockContext.payload.pull_request = { number: 42 }
 
     await run()
 
-    // Verify that the action was marked as failed.
-    expect(core.setFailed).toHaveBeenNthCalledWith(
-      1,
-      'milliseconds is not a number'
-    )
+    expect(core.setFailed).toHaveBeenCalledWith('API key is required')
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 })
 ```
