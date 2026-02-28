@@ -92,6 +92,18 @@ body {
   background: var(--primary-dark);
 }
 
+.button-secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  margin-left: 1rem;
+}
+
+.button-secondary:hover {
+  background: var(--primary);
+  color: white;
+}
+
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));

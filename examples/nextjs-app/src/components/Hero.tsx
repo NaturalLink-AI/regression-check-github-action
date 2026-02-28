@@ -1,13 +1,16 @@
 export function Hero() {
   return (
     <section className="hero">
-      <h1>Build Better Software</h1>
+      <h1>Ship With Confidence</h1>
       <p>
-        A demo application showcasing how NaturalLink Regression Check catches
-        unintended UI changes before they ship to production.
+        Stop worrying about unintended UI changes. NaturalLink Regression Check
+        catches visual regressions before they reach your users.
       </p>
       <a href="#features" className="button">
-        Learn More
+        Get Started
+      </a>
+      <a href="#demo" className="button button-secondary">
+        Watch Demo
       </a>
     </section>
   )
