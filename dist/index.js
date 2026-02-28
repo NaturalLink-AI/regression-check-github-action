@@ -59430,19 +59430,29 @@ async function triggerRun(apiUrl, apiKey, request) {
     coreExports.debug(`Response status: ${response.status}`);
     coreExports.debug(`Response body: ${responseText}`);
     if (!response.ok) {
-        let errorMessage = `${response.status} ${response.statusText}`;
+        coreExports.error(`API Error: HTTP ${response.status} ${response.statusText}`);
+        coreExports.error(`Response: ${responseText}`);
+        let errorMessage = `HTTP ${response.status}`;
+        let errorDetail = '';
         try {
             const errorBody = JSON.parse(responseText);
             if (errorBody.error) {
-                errorMessage = errorBody.error;
+                errorDetail = errorBody.error;
+            }
+            else if (errorBody.message) {
+                errorDetail = errorBody.message;
+            }
+            else if (errorBody.detail) {
+                errorDetail = errorBody.detail;
+            }
+            else {
+                errorDetail = JSON.stringify(errorBody);
             }
         }
         catch {
-            if (responseText) {
-                errorMessage = responseText;
-            }
+            errorDetail = responseText || response.statusText;
         }
-        throw new Error(`Failed to trigger run: ${errorMessage}`);
+        throw new Error(`${errorMessage}: ${errorDetail}`);
     }
     return JSON.parse(responseText);
 }
@@ -59459,19 +59469,26 @@ async function getRunStatus(apiUrl, apiKey, runId) {
     coreExports.debug(`Response status: ${response.status}`);
     coreExports.debug(`Response body: ${responseText}`);
     if (!response.ok) {
-        let errorMessage = `${response.status} ${response.statusText}`;
+        coreExports.error(`API Error: HTTP ${response.status} ${response.statusText}`);
+        coreExports.error(`Response: ${responseText}`);
+        let errorMessage = `HTTP ${response.status}`;
+        let errorDetail = '';
         try {
             const errorBody = JSON.parse(responseText);
             if (errorBody.error) {
-                errorMessage = errorBody.error;
+                errorDetail = errorBody.error;
+            }
+            else if (errorBody.message) {
+                errorDetail = errorBody.message;
+            }
+            else {
+                errorDetail = JSON.stringify(errorBody);
             }
         }
         catch {
-            if (responseText) {
-                errorMessage = responseText;
-            }
+            errorDetail = responseText || response.statusText;
         }
-        throw new Error(`Failed to get run status: ${errorMessage}`);
+        throw new Error(`${errorMessage}: ${errorDetail}`);
     }
     return JSON.parse(responseText);
 }
