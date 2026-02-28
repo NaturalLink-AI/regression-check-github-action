@@ -1,7 +1,7 @@
 {
   "name": "regression-check-github-action",
   "description": "Checks for regressions in your code through your GitHub Workflow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "",
   "type": "module",
   "private": true,

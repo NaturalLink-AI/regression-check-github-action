@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/NaturalLink-AI/regression-check-github-action/compare/v1.0.0...v1.0.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* improve error messages with full API response details ([4e2357e](https://github.com/NaturalLink-AI/regression-check-github-action/commit/4e2357ef4c6a6cfbd171e20533338ab4de5e3c4c))
+
 ## [1.0.0](https://github.com/NaturalLink-AI/regression-check-github-action/compare/v0.4.0...v1.0.0) (2026-02-28)
 
 
