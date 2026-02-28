@@ -53,6 +53,7 @@ body {
   font-weight: 500;
 }
 
+.nav a:focus-visible,
 .nav a:hover {
   color: var(--primary);
 }
@@ -88,6 +89,7 @@ body {
   transition: background 0.2s;
 }
 
+.button:focus-visible,
 .button:hover {
   background: var(--primary-dark);
 }
@@ -99,6 +101,7 @@ body {
   margin-left: 1rem;
 }
 
+.button-secondary:focus-visible,
 .button-secondary:hover {
   background: var(--primary);
   color: white;
