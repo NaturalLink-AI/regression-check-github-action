@@ -159,9 +159,7 @@ describe('main.ts', () => {
 
     await run()
 
-    expect(core.setFailed).toHaveBeenCalledWith(
-      'Failed to trigger run: Invalid API key'
-    )
+    expect(core.setFailed).toHaveBeenCalledWith('HTTP 401: Invalid API key')
     expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
   })
 
@@ -170,9 +168,7 @@ describe('main.ts', () => {
 
     await run()
 
-    expect(core.setFailed).toHaveBeenCalledWith(
-      'Failed to trigger run: Not Found'
-    )
+    expect(core.setFailed).toHaveBeenCalledWith('HTTP 404: Not Found')
     expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
   })
 
