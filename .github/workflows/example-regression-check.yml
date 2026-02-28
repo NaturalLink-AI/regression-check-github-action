@@ -16,6 +16,6 @@ jobs:
 
     steps:
       - name: Run Regression Check
-        uses: NaturalLink-AI/regression-check-github-action@v1
+        uses: NaturalLink-AI/regression-check-github-action@main
         with:
           api-key: ${{ secrets.NATURALLINK_API_KEY }}
