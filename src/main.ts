@@ -77,7 +77,7 @@ async function triggerRun(
     core.error(`API Error: HTTP ${response.status} ${response.statusText}`)
     core.error(`Response: ${responseText}`)
 
-    let errorMessage = `HTTP ${response.status}`
+    const errorMessage = `HTTP ${response.status}`
     let errorDetail = ''
 
     try {
@@ -125,7 +125,7 @@ async function getRunStatus(
     core.error(`API Error: HTTP ${response.status} ${response.statusText}`)
     core.error(`Response: ${responseText}`)
 
-    let errorMessage = `HTTP ${response.status}`
+    const errorMessage = `HTTP ${response.status}`
     let errorDetail = ''
 
     try {

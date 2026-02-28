@@ -59432,7 +59432,7 @@ async function triggerRun(apiUrl, apiKey, request) {
     if (!response.ok) {
         coreExports.error(`API Error: HTTP ${response.status} ${response.statusText}`);
         coreExports.error(`Response: ${responseText}`);
-        let errorMessage = `HTTP ${response.status}`;
+        const errorMessage = `HTTP ${response.status}`;
         let errorDetail = '';
         try {
             const errorBody = JSON.parse(responseText);
@@ -59471,7 +59471,7 @@ async function getRunStatus(apiUrl, apiKey, runId) {
     if (!response.ok) {
         coreExports.error(`API Error: HTTP ${response.status} ${response.statusText}`);
         coreExports.error(`Response: ${responseText}`);
-        let errorMessage = `HTTP ${response.status}`;
+        const errorMessage = `HTTP ${response.status}`;
         let errorDetail = '';
         try {
             const errorBody = JSON.parse(responseText);
