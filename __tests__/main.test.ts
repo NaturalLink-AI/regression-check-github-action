@@ -8,10 +8,8 @@
 import { jest } from '@jest/globals'
 import * as core from '../__fixtures__/core.js'
 
-// Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
 
-// Mock @actions/github
 const mockContext = {
   payload: {
     pull_request: null as { number: number } | null
@@ -20,27 +18,54 @@ const mockContext = {
     owner: 'test-owner',
     repo: 'test-repo'
   },
-  sha: 'abc123'
+  ref: 'refs/heads/main',
+  sha: 'abc123def456789'
 }
 jest.unstable_mockModule('@actions/github', () => ({
   context: mockContext
 }))
 
-// Mock global fetch
 const mockFetch = jest.fn()
 global.fetch = mockFetch as typeof fetch
 
-// The module being tested should be imported dynamically. This ensures that the
-// mocks are used in place of any actual dependencies.
 const { run } = await import('../src/main.js')
+
+const TEST_RUN_ID = '550e8400-e29b-41d4-a716-446655440000'
+const API_URL = 'https://api.naturallink.ai'
+
+function createSuccessResponse<T>(data: T) {
+  return {
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    text: async () => JSON.stringify(data)
+  }
+}
+
+function createErrorResponse(
+  status: number,
+  statusText: string,
+  errorMessage?: string
+) {
+  return {
+    ok: false,
+    status,
+    statusText,
+    text: async () =>
+      errorMessage ? JSON.stringify({ error: errorMessage }) : statusText
+  }
+}
 
 describe('main.ts', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockContext.payload.pull_request = null
-    // Default: return a valid API key
+    mockContext.ref = 'refs/heads/main'
+    mockContext.sha = 'abc123def456789'
     core.getInput.mockImplementation((name: string) => {
       if (name === 'api-key') return 'test-api-key'
+      if (name === 'api-url') return API_URL
+      if (name === 'poll-interval') return '0.1'
+      if (name === 'timeout') return '5'
       return ''
     })
   })
@@ -49,106 +74,118 @@ describe('main.ts', () => {
     jest.resetAllMocks()
   })
 
-  it('should skip execution when not a pull request', async () => {
-    mockContext.payload.pull_request = null
+  it('should trigger run and poll until success', async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'IN_PROGRESS'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'SUCCESS'
+        })
+      )
 
     await run()
 
-    expect(mockFetch).not.toHaveBeenCalled()
-    expect(core.setFailed).not.toHaveBeenCalled()
-    expect(core.setOutput).toHaveBeenCalledWith('status', 'skipped')
-    expect(core.setOutput).toHaveBeenCalledWith('regressions-detected', 'false')
-  })
-
-  it('should call NaturalLink API on pull request', async () => {
-    mockContext.payload.pull_request = { number: 42 }
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        status: 'success',
-        report_url: 'https://app.naturallink.ai/report/123',
-        regressions_detected: false
+    expect(mockFetch).toHaveBeenCalledWith(`${API_URL}/api/runs/trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': 'test-api-key'
+      },
+      body: JSON.stringify({
+        type: 'REGRESSION_CHECK',
+        repository: 'test-owner/test-repo',
+        branch: 'main',
+        commitSha: 'abc123def456789'
       })
     })
-
-    await run()
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.naturallink.ai/v1/check',
+      `${API_URL}/api/runs/${TEST_RUN_ID}/status`,
       {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer test-api-key'
-        },
-        body: JSON.stringify({
-          repository: { owner: 'test-owner', repo: 'test-repo' },
-          pull_request: 42,
-          sha: 'abc123'
-        })
+          'X-API-Key': 'test-api-key'
+        }
       }
     )
-    expect(core.setOutput).toHaveBeenCalledWith('status', 'success')
-    expect(core.setOutput).toHaveBeenCalledWith(
-      'report-url',
-      'https://app.naturallink.ai/report/123'
-    )
-    expect(core.setOutput).toHaveBeenCalledWith('regressions-detected', 'false')
+
+    expect(core.setOutput).toHaveBeenCalledWith('run-id', TEST_RUN_ID)
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'SUCCESS')
     expect(core.setFailed).not.toHaveBeenCalled()
   })
 
-  it('should warn when regressions are detected', async () => {
-    mockContext.payload.pull_request = { number: 42 }
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        status: 'warning',
-        report_url: 'https://app.naturallink.ai/report/456',
-        regressions_detected: true
-      })
-    })
+  it('should handle run failure with ERROR status', async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'ERROR'
+        })
+      )
 
     await run()
 
-    expect(core.setOutput).toHaveBeenCalledWith('regressions-detected', 'true')
-    expect(core.warning).toHaveBeenCalledWith(
-      'Unintended UI regressions detected. Please review the report.'
-    )
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
+    expect(core.setFailed).toHaveBeenCalledWith('Regression check failed')
   })
 
   it('should handle API errors gracefully', async () => {
-    mockContext.payload.pull_request = { number: 42 }
-
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      text: async () => 'Unauthorized'
-    })
+    mockFetch.mockResolvedValueOnce(
+      createErrorResponse(401, 'Unauthorized', 'Invalid API key')
+    )
 
     await run()
 
     expect(core.setFailed).toHaveBeenCalledWith(
-      'API request failed: 401 Unauthorized'
+      'Failed to trigger run: Invalid API key'
     )
-    expect(core.setOutput).toHaveBeenCalledWith('status', 'failure')
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
+  })
+
+  it('should handle API error responses with plain text', async () => {
+    mockFetch.mockResolvedValueOnce(createErrorResponse(404, 'Not Found'))
+
+    await run()
+
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'Failed to trigger run: Not Found'
+    )
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
   })
 
   it('should handle network errors gracefully', async () => {
-    mockContext.payload.pull_request = { number: 42 }
-
     mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
     await run()
 
     expect(core.setFailed).toHaveBeenCalledWith('Network error')
-    expect(core.setOutput).toHaveBeenCalledWith('status', 'failure')
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
   })
 
   it('should handle non-Error exceptions gracefully', async () => {
-    mockContext.payload.pull_request = { number: 42 }
-
     mockFetch.mockRejectedValueOnce('String error message')
 
     await run()
@@ -157,41 +194,174 @@ describe('main.ts', () => {
   })
 
   it('should fail when API key is missing', async () => {
-    core.getInput.mockImplementation(() => '')
-    mockContext.payload.pull_request = { number: 42 }
+    core.getInput.mockImplementation((name: string) => {
+      if (name === 'api-url') return API_URL
+      return ''
+    })
 
     await run()
 
-    expect(core.setFailed).toHaveBeenCalledWith('API key is required')
+    expect(core.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining('API key is required')
+    )
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('should mask the API key in logs', async () => {
-    mockContext.payload.pull_request = null
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'SUCCESS'
+        })
+      )
 
     await run()
 
     expect(core.setSecret).toHaveBeenCalledWith('test-api-key')
   })
 
-  it('should handle response without report URL', async () => {
-    mockContext.payload.pull_request = { number: 42 }
+  it('should extract branch from refs/heads/', async () => {
+    mockContext.ref = 'refs/heads/feature/my-branch'
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        status: 'success',
-        report_url: '',
-        regressions_detected: false
-      })
-    })
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'SUCCESS'
+        })
+      )
 
     await run()
 
-    expect(core.setOutput).toHaveBeenCalledWith('status', 'success')
-    expect(core.setOutput).toHaveBeenCalledWith('report-url', '')
-    expect(core.info).not.toHaveBeenCalledWith(
-      expect.stringContaining('View full report')
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_URL}/api/runs/trigger`,
+      expect.objectContaining({
+        body: expect.stringContaining('"branch":"feature/my-branch"')
+      })
     )
+  })
+
+  it('should handle PR refs', async () => {
+    mockContext.ref = 'refs/pull/42/merge'
+
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'SUCCESS'
+        })
+      )
+
+    await run()
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `${API_URL}/api/runs/trigger`,
+      expect.objectContaining({
+        body: expect.stringContaining('"branch":"pr-42"')
+      })
+    )
+  })
+
+  it('should timeout if run does not complete', async () => {
+    core.getInput.mockImplementation((name: string) => {
+      if (name === 'api-key') return 'test-api-key'
+      if (name === 'api-url') return API_URL
+      if (name === 'poll-interval') return '0.05'
+      if (name === 'timeout') return '0.1'
+      return ''
+    })
+
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValue(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'IN_PROGRESS'
+        })
+      )
+
+    await run()
+
+    expect(core.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining('timed out')
+    )
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'ERROR')
+  })
+
+  it('should poll through intermediate statuses', async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PENDING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'DISCOVERING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'PARSING'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSuccessResponse({
+          id: TEST_RUN_ID,
+          type: 'REGRESSION_CHECK',
+          status: 'SUCCESS'
+        })
+      )
+
+    await run()
+
+    expect(mockFetch).toHaveBeenCalledTimes(5)
+    expect(core.setOutput).toHaveBeenCalledWith('status', 'SUCCESS')
+    expect(core.setFailed).not.toHaveBeenCalled()
   })
 })

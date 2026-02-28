@@ -10,17 +10,28 @@ branding:
 inputs:
   api-key:
     required: true
-    description: 'Your NaturalLink API key from the dashboard'
+    description: 'Your NaturalLink API key from dashboard.naturallink.ai'
+  timeout:
+    required: false
+    description: 'Maximum wait time in seconds (default: 5 minutes)'
+    default: '300'
+  api-url:
+    required: false
+    description: 'API URL for enterprise deployments'
+    default: 'https://api.naturallink.ai'
+    deprecationMessage: 'For enterprise customers only'
+  poll-interval:
+    required: false
+    description: 'Status check interval in seconds'
+    default: '5'
 
 outputs:
   status:
-    description:
-      'The status of the regression check (success, failure, warning)'
-  report-url:
-    description: 'URL to the full regression report'
-  regressions-detected:
-    description:
-      'Whether unintended visual regressions were found (true, false)'
+    description: 'Result of the check: SUCCESS or ERROR'
+  error-message:
+    description: 'Error details if the check failed'
+  run-id:
+    description: 'Internal run identifier for debugging'
 
 runs:
   using: node20

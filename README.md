@@ -94,6 +94,8 @@ name: NaturalLink Regression Check
 on:
   pull_request:
     types: [opened, synchronize]
+  push:
+    branches: [main]
 
 jobs:
   regression-check:
@@ -102,7 +104,7 @@ jobs:
     steps:
       - name: Run NaturalLink Regression Check
         id: regression-check
-        uses: NaturalLink-AI/regression-check-github-action@v0.3.0
+        uses: NaturalLink-AI/regression-check-github-action@v0
         with:
           api-key: ${{ secrets.NATURALLINK_API_KEY }}
 ```
@@ -112,14 +114,13 @@ jobs:
 | Input     | Required | Description                                                                     |
 | --------- | -------- | ------------------------------------------------------------------------------- |
 | `api-key` | Yes      | Your NaturalLink API key from the [Dashboard](https://dashboard.naturallink.ai) |
+| `timeout` | No       | Maximum wait time in seconds (default: 300)                                     |
 
 ## Outputs
 
-| Output                 | Description                                                          |
-| ---------------------- | -------------------------------------------------------------------- |
-| `status`               | The status of the regression check (`success`, `failure`, `warning`) |
-| `report-url`           | URL to the full regression report                                    |
-| `regressions-detected` | Whether unintended visual regressions were found (`true`, `false`)   |
+| Output   | Description                               |
+| -------- | ----------------------------------------- |
+| `status` | Result of the check: `SUCCESS` or `ERROR` |
 
 ## Examples
 
@@ -132,18 +133,29 @@ jobs:
     api-key: ${{ secrets.NATURALLINK_API_KEY }}
 ```
 
-### With Status Check
+### Longer Timeout for Large Repos
+
+```yaml
+- name: Run Regression Check
+  uses: NaturalLink-AI/regression-check-github-action@v0
+  with:
+    api-key: ${{ secrets.NATURALLINK_API_KEY }}
+    timeout: '600'
+```
+
+### Continue on Failure
 
 ```yaml
 - name: Run Regression Check
   id: regression
   uses: NaturalLink-AI/regression-check-github-action@v0
+  continue-on-error: true
   with:
     api-key: ${{ secrets.NATURALLINK_API_KEY }}
 
-- name: Check Results
-  if: steps.regression.outputs.regressions-detected == 'true'
-  run: echo "Unintended UI regressions detected! Review the report."
+- name: Handle Results
+  if: steps.regression.outputs.status == 'ERROR'
+  run: echo "Regression check failed, but continuing..."
 ```
 
 ## Compatibility

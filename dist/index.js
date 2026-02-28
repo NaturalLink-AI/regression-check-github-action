@@ -59392,74 +59392,201 @@ Octokit.plugin(restEndpointMethods, paginateRest).defaults(defaults);
 
 const context = new Context();
 
-/**
- * The main function for the action.
- *
- * @returns Resolves when the action is complete.
- */
+const TERMINAL_STATUSES = ['SUCCESS', 'ERROR'];
+const STATUS_MESSAGES = {
+    PENDING: '⏳ Waiting in queue...',
+    IN_PROGRESS: '🔄 Analyzing your code...',
+    DISCOVERING: '🔍 Scanning repository...',
+    PARSING: '📝 Understanding code structure...',
+    SUCCESS: '✅ Analysis complete!',
+    ERROR: '❌ Analysis encountered an issue'
+};
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function getBranchFromRef(ref) {
+    if (ref.startsWith('refs/heads/')) {
+        return ref.replace('refs/heads/', '');
+    }
+    if (ref.startsWith('refs/pull/')) {
+        const prNumber = ref.split('/')[2];
+        return `pr-${prNumber}`;
+    }
+    return ref;
+}
+async function triggerRun(apiUrl, apiKey, request) {
+    const url = `${apiUrl}/api/runs/trigger`;
+    coreExports.debug(`Triggering run at ${url}`);
+    coreExports.debug(`Request: ${JSON.stringify(request)}`);
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+        },
+        body: JSON.stringify(request)
+    });
+    const responseText = await response.text();
+    coreExports.debug(`Response status: ${response.status}`);
+    coreExports.debug(`Response body: ${responseText}`);
+    if (!response.ok) {
+        let errorMessage = `${response.status} ${response.statusText}`;
+        try {
+            const errorBody = JSON.parse(responseText);
+            if (errorBody.error) {
+                errorMessage = errorBody.error;
+            }
+        }
+        catch {
+            if (responseText) {
+                errorMessage = responseText;
+            }
+        }
+        throw new Error(`Failed to trigger run: ${errorMessage}`);
+    }
+    return JSON.parse(responseText);
+}
+async function getRunStatus(apiUrl, apiKey, runId) {
+    const url = `${apiUrl}/api/runs/${runId}/status`;
+    coreExports.debug(`Fetching run status from ${url}`);
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-API-Key': apiKey
+        }
+    });
+    const responseText = await response.text();
+    coreExports.debug(`Response status: ${response.status}`);
+    coreExports.debug(`Response body: ${responseText}`);
+    if (!response.ok) {
+        let errorMessage = `${response.status} ${response.statusText}`;
+        try {
+            const errorBody = JSON.parse(responseText);
+            if (errorBody.error) {
+                errorMessage = errorBody.error;
+            }
+        }
+        catch {
+            if (responseText) {
+                errorMessage = responseText;
+            }
+        }
+        throw new Error(`Failed to get run status: ${errorMessage}`);
+    }
+    return JSON.parse(responseText);
+}
+async function pollForCompletion(apiUrl, apiKey, runId, pollIntervalSeconds, timeoutSeconds) {
+    const startTime = Date.now();
+    const timeoutMs = timeoutSeconds * 1000;
+    const pollIntervalMs = pollIntervalSeconds * 1000;
+    let lastStatus = null;
+    let pollCount = 0;
+    while (true) {
+        pollCount++;
+        const elapsedMs = Date.now() - startTime;
+        if (elapsedMs >= timeoutMs) {
+            throw new Error(`The analysis timed out after ${Math.round(timeoutSeconds / 60)} minutes. Please try again or contact support.`);
+        }
+        const runStatus = await getRunStatus(apiUrl, apiKey, runId);
+        if (runStatus.status !== lastStatus) {
+            coreExports.info(STATUS_MESSAGES[runStatus.status]);
+            lastStatus = runStatus.status;
+        }
+        coreExports.debug(`Poll #${pollCount}: ${runStatus.status} (elapsed: ${Math.round(elapsedMs / 1000)}s)`);
+        if (TERMINAL_STATUSES.includes(runStatus.status)) {
+            return runStatus;
+        }
+        await sleep(pollIntervalMs);
+    }
+}
 async function run() {
     try {
-        // Get the API key input
         const apiKey = coreExports.getInput('api-key', { required: true });
+        const apiUrl = coreExports.getInput('api-url') || 'https://api.naturallink.ai';
+        const pollInterval = parseInt(coreExports.getInput('poll-interval') || '5', 10);
+        const timeout = parseInt(coreExports.getInput('timeout') || '300', 10);
         if (!apiKey) {
-            coreExports.setFailed('API key is required');
+            coreExports.setFailed('API key is required. Get yours at https://dashboard.naturallink.ai');
             return;
         }
-        // Mask the API key in logs
         coreExports.setSecret(apiKey);
-        if (context.payload.pull_request) {
-            const prNumber = context.payload.pull_request.number;
-            coreExports.info(`Running regression check for PR #${prNumber}`);
-            // Call NaturalLink API to check for regressions
-            const response = await fetch('https://api.naturallink.ai/v1/check', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    repository: context.repo,
-                    pull_request: prNumber,
-                    sha: context.sha
-                })
-            });
-            if (!response.ok) {
-                const errorText = await response.text();
-                coreExports.setFailed(`API request failed: ${response.status} ${errorText}`);
-                coreExports.setOutput('status', 'failure');
-                coreExports.setOutput('regressions-detected', 'false');
-                return;
-            }
-            const result = (await response.json());
-            // Set outputs
-            coreExports.setOutput('status', result.status);
-            coreExports.setOutput('report-url', result.report_url);
-            coreExports.setOutput('regressions-detected', String(result.regressions_detected));
-            // Log results
-            coreExports.info(`Regression check complete: ${result.status}`);
-            if (result.report_url) {
-                coreExports.info(`View full report: ${result.report_url}`);
-            }
-            if (result.regressions_detected) {
-                coreExports.warning('Unintended UI regressions detected. Please review the report.');
-            }
-            else {
-                coreExports.info('No unintended regressions detected.');
-            }
+        const { owner, repo } = context.repo;
+        const repository = `${owner}/${repo}`;
+        const ref = context.ref;
+        const sha = context.sha;
+        const branch = getBranchFromRef(ref);
+        coreExports.info('');
+        coreExports.info('🔬 NaturalLink Regression Check');
+        coreExports.info('────────────────────────────────────────');
+        coreExports.info(`   ${repository} @ ${branch}`);
+        coreExports.info(`   Commit: ${sha.substring(0, 7)}`);
+        coreExports.info('');
+        const triggerRequest = {
+            type: 'REGRESSION_CHECK',
+            repository,
+            branch,
+            commitSha: sha
+        };
+        coreExports.info('🚀 Starting regression analysis...');
+        coreExports.info('');
+        const triggerResponse = await triggerRun(apiUrl, apiKey, triggerRequest);
+        coreExports.debug(`Internal run ID: ${triggerResponse.id}`);
+        coreExports.setOutput('run-id', triggerResponse.id);
+        const finalStatus = await pollForCompletion(apiUrl, apiKey, triggerResponse.id, pollInterval, timeout);
+        coreExports.info('');
+        coreExports.info('────────────────────────────────────────');
+        coreExports.setOutput('status', finalStatus.status);
+        if (finalStatus.status === 'SUCCESS') {
+            coreExports.info('');
+            coreExports.info('✅ No regressions detected');
+            coreExports.info('');
+            coreExports.info('   Your changes look good! No unintended');
+            coreExports.info('   side effects were found.');
+            coreExports.info('');
         }
-        else {
-            coreExports.info('Not a pull request - skipping regression check');
-            coreExports.setOutput('status', 'skipped');
-            coreExports.setOutput('regressions-detected', 'false');
+        else if (finalStatus.status === 'ERROR') {
+            coreExports.info('');
+            coreExports.info('❌ Check failed');
+            coreExports.info('');
+            coreExports.info('   The regression check could not complete.');
+            coreExports.info('   Please check the logs above for details.');
+            coreExports.info('');
+            coreExports.setFailed('Regression check failed');
         }
     }
     catch (error) {
-        coreExports.setOutput('status', 'failure');
-        coreExports.setOutput('regressions-detected', 'false');
-        if (error instanceof Error)
-            coreExports.setFailed(error.message);
-        else
-            coreExports.setFailed(String(error));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        coreExports.info('');
+        coreExports.info('────────────────────────────────────────');
+        coreExports.info('');
+        coreExports.info('❌ Something went wrong');
+        coreExports.info('');
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+            coreExports.info('   Your API key appears to be invalid.');
+            coreExports.info('   Please check your NATURALLINK_API_KEY secret.');
+            coreExports.info('');
+            coreExports.info('   Get a new key at: https://dashboard.naturallink.ai');
+        }
+        else if (errorMessage.includes('timed out')) {
+            coreExports.info('   The analysis took too long to complete.');
+            coreExports.info('   This can happen with very large repositories.');
+            coreExports.info('');
+            coreExports.info('   Try increasing the timeout or contact support.');
+        }
+        else if (errorMessage.includes('Network') ||
+            errorMessage.includes('fetch')) {
+            coreExports.info('   Could not connect to NaturalLink servers.');
+            coreExports.info('   Please check your network connection.');
+        }
+        else {
+            coreExports.info(`   ${errorMessage}`);
+        }
+        coreExports.info('');
+        coreExports.info('   Need help? contact@naturallink.ai');
+        coreExports.info('');
+        coreExports.setOutput('status', 'ERROR');
+        coreExports.setOutput('error-message', errorMessage);
+        coreExports.setFailed(errorMessage);
     }
 }
 
