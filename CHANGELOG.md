@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/NaturalLink-AI/regression-check-github-action/compare/v0.4.0...v1.0.0) (2026-02-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* API response format updated to match backend contract
+
+### Features
+
+* implement full regression check API integration ([61ec70c](https://github.com/NaturalLink-AI/regression-check-github-action/commit/61ec70c3c9519a7b0a907e72aeb2165004b564bf))
+
 ## [0.4.0](https://github.com/NaturalLink-AI/regression-check-github-action/compare/v0.3.0...v0.4.0) (2026-02-21)
 
 
